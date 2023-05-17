@@ -4,11 +4,13 @@
 #define TOKEN_MAX_AMOUNT 128
 
 typedef enum {
-    Null,
-    Variable, 
-    Number, 
-    Equals, 
-    BinaryOperator
+    TokenEof,
+    TokenIdentifier, 
+    TokenNumber, 
+    TokenEquals, 
+    TokenBinaryOperator, 
+    TokenOpenParen,
+    TokenCloseParen
 } TokenType;
 
 typedef struct {
@@ -16,5 +18,6 @@ typedef struct {
     TokenType type;
 } Token;
 
-void tokenize(const char *str, Token* tokens);
-void print_tokens(Token* tokens);
+int tokenize(const char *str, Token* tokens);
+void print_tokens(Token* tokens, int size);
+void print_token(Token token);

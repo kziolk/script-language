@@ -1,42 +1,61 @@
 #include <stdio.h>
+#include <string.h>
 
 #include "tokenizer.h"
 
-void printToken(Token token) 
+void print_token(Token token) 
 {
     switch (token.type) {
-        case Variable: printf("VARIABLE"); break;
-        case Number: printf("NUMBER"); break;
-        case Equals: printf("EQUALS"); break;
-        case BinaryOperator: printf("BINARY_OPERATOR"); break;
+        case TokenEof: printf("EOF"); break;
+        case TokenIdentifier: printf("IDENTIFIER"); break;
+        case TokenNumber: printf("NUMBER"); break;
+        case TokenEquals: printf("EQUALS"); break;
+        case TokenBinaryOperator: printf("BINARY_OP"); break;
+        case TokenOpenParen: printf("OPEN_PAREN"); break;
+        case TokenCloseParen: printf("CLOSED_PAREN"); break;
     }
     printf("(%s)", token.val);
 }
 
-void print_tokens(Token* tokens) 
+void print_tokens(Token* tokens, int size) 
 {
-    for (int i = 0; tokens[i].type != Null; i++) {
-        printToken(tokens[i]);
+    printf("Tokens:\n");
+    for (int i = 0; i < size; i++) {
+        print_token(tokens[i]);
         // spacing
         if (i % 4 == 3) 
             printf("\n");
         else printf("\t");
     }
-    printf("\n");
+    printf("\n\n");
 }
 
 void create_token_binary(Token* token, char val) 
 {
     token->val[0] = val;
     token->val[1] = '\0';
-    token->type = BinaryOperator;
+    token->type = TokenBinaryOperator;
 }
 
 void create_token_equals(Token* token, char val) 
 {
     token->val[0] = val;
     token->val[1] = '\0';
-    token->type = Equals;
+    token->type = TokenEquals;
+}
+
+void create_token_open_paren(Token* token, char val) 
+{
+    token->val[0] = val;
+    token->val[1] = '\0';
+    token->type = TokenOpenParen;
+}
+
+void create_token_closed_paren(Token* token, char val) 
+{
+    token->val[0] = val;
+    token->val[1] = '\0';
+    token->type = TokenCloseParen;
 }
 
 void create_token_number(Token* token, const char* str, int num_len) 
@@ -47,10 +66,10 @@ void create_token_number(Token* token, const char* str, int num_len)
         i++;
     }
     token->val[num_len] = '\0';
-    token->type = Number;
+    token->type = TokenNumber;
 }
 
-void create_token_variable(Token* token, const char* str, int var_len) 
+void create_token_identifier(Token* token, const char* str, int var_len) 
 {
     int i = 0;
     while(i < var_len) {
@@ -58,7 +77,13 @@ void create_token_variable(Token* token, const char* str, int var_len)
         i++;
     }
     token->val[var_len] = '\0';
-    token->type = Variable;
+    token->type = TokenIdentifier;
+}
+
+void create_token_eof(Token* token)
+{
+    strcpy(token->val, "EndOfFile");
+    token->type = TokenEof;
 }
 
 int isAlpha(char c)
@@ -94,22 +119,26 @@ int detect_variable(const char* str)
     return i;
 }
 
-void tokenize(const char *str, Token* tokens) 
+int tokenize(const char *str, Token* tokens) 
 {
     unsigned int size = 0;
 
     for(int i = 0; str[i] != '\0'; i++) {
-        if (size == TOKEN_MAX_AMOUNT) {
+        if (size == TOKEN_MAX_AMOUNT - 1) {
             // exceeding max amount
-                printf("Encountered characters after reaching max tokens (i == %d).\nTokenizer aborted.", i);
-                return;
+                printf("Encountered characters after reaching max tokens (i == %d).\nTokenizer aborted.\n", i);
+                return -1;
         }
 
         char c = str[i];
-        if (c == '+' || c == '-' || c == '*' || c == '*')
+        if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%')
             create_token_binary(&tokens[size++], c);
         else if (c == '=')
             create_token_equals(&tokens[size++], c);
+        else if (c == '(')
+            create_token_open_paren(&tokens[size++], c);
+        else if (c == ')')
+            create_token_closed_paren(&tokens[size++], c);
         else {
             // handle number
             if (c >= '1' && c <= '9') {
@@ -120,7 +149,7 @@ void tokenize(const char *str, Token* tokens)
             // handle Variable
             else if (isAlpha(c)) {
                 int var_len = detect_variable(&str[i]);
-                create_token_variable(&tokens[size++], &str[i], var_len);
+                create_token_identifier(&tokens[size++], &str[i], var_len);
                 i += var_len - 1;
 
             }
@@ -130,10 +159,11 @@ void tokenize(const char *str, Token* tokens)
             }
             // abort on unsupported characters
             else {
-                printf("Unhandled character [%c].\nTokenizer aborted.", c);
-                return;
+                printf("Unhandled character [%c].\nTokenizer aborted.\n", c);
+                return -1;
             }
         }
     }
-    tokens[size].type = Null;
+    create_token_eof(&tokens[size++]);
+    return size;
 }
